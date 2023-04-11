@@ -7,15 +7,21 @@
     <script src="https://unpkg.com/@jspsych/plugin-fullscreen@1.1.0"></script>
     <script src="https://unpkg.com/@jspsych/plugin-browser-check@1.0.0"></script>
     <link href="https://unpkg.com/jspsych@7.3.2/css/jspsych.css" rel="stylesheet" type="text/css" />
+    <style>
+        .upperline {
+            text-transform: uppercase;
+            text-decoration: underline;
+        }
+    </style>
   </head>
   <body></body>
   <script>
         // task constants
         const STIMSET = ['Y', 'A', 'X', 'P', 'Q', 'E', 'N', 'M', 'T', 'W', 'U', 'S', 'B', 'R'];
-        const TRIAL_TIME = 100; // 2 s
-        const ITI = 100; // 1.5 s
+        const TRIAL_TIME = 2000; // 2 s
+        const ITI = 1500; // 1.5 s
         const KEYS = ['ArrowLeft', 'ArrowRight'];
-        const NTRIALS = 4; // for each nback task (80 total)
+        const NTRIALS = 20; // for each nback task (80 total)
 
         // init jsPsych
         var jsPsych = initJsPsych({
@@ -133,7 +139,7 @@
                 }
 
                 // score the trial as correct or incorrect
-                if (jsPsych.pluginAPI.compareKeys(data.response, data.match_type)) {
+                if (jsPsych.pluginAPI.compareKeys(data.response_type, data.match_type)) {
                     data.correct = true;
                 } else {
                     data.correct = false;
@@ -201,7 +207,7 @@
             type: jsPsychHtmlKeyboardResponse,
             choices: 'c',
             post_trial_gap: 1000,
-            stimulus: '<strong>Welcome to the Working Memory MiA for Psych 45!</strong> <br /><br />This demo experiment will take about 10 minutes to complete. Please complete all in one sitting. <br /><br />For this study, <strong>please use</strong> a laptop or desktop computer (not a mobile phone or tablet). Also, please use either <u>Chrome or Firefox</u>. <br /><br />Once you begin, <strong>DO NOT</strong> refresh the browser, as the study will reset and you will lose your progress. <br /><br />Press the <strong class="upperline">C</strong> key on your keyboard to move onto the instructions. <br /><br /><u>(if you encounter any technical difficulties, please contact TA Shawn Schwartz: <a href="mailto:stschwartz@stanford.edu?Subject=[Psych45]:%20MiA%20Task%20Demo%20Issue" target="_blank">stschwartz [at] stanford [dot] edu</a>)</u>'
+            stimulus: '<strong>Welcome to Part 1 of the Working Memory MiA for Psych 45!</strong> <br /><br />This demo experiment will take about 10 minutes to complete. Please complete all in one sitting. <br /><br />For this study, <strong>please use</strong> a laptop or desktop computer (not a mobile phone or tablet). Also, please use either <u>Chrome or Firefox</u>. <br /><br />Once you begin, <strong>DO NOT</strong> refresh the browser, as the study will reset and you will lose your progress. <br /><br />Press the <strong class="upperline">C</strong> key on your keyboard to move onto the instructions. <br /><br /><u>(if you encounter any technical difficulties, please contact TA Shawn Schwartz: <a href="mailto:stschwartz@stanford.edu?Subject=[Psych45]:%20MiA%20Task%20Demo%20Issue" target="_blank">stschwartz [at] stanford [dot] edu</a>)</u>'
         };
         timeline.push(welcome);
 
@@ -234,7 +240,7 @@
             type: jsPsychHtmlKeyboardResponse,
             choices: 'c',
             post_trial_gap: 1000,
-            stimulus: 'You will first complete a series of "N-Back" working memory tasks. <br /><br /> Here, you will see a series of letters presented one-at-a-time at the center of the screen. <br /><br />You will then make a response on your keyboard as to whether or not the current letter on the screen matches that from <strong>N</strong> trials ago. <br /><br />For demonstration purposes, we will have you complete one of each: 1-back, 2-back, 3-back, and 4-back so you can get a sense of how each works. <br /><br />Importantly, we will tell you which version you will be completing before you get started. <br /><br />Press the <strong class="upperline">C</strong> key on your keyboard to begin.'
+            stimulus: 'You will first complete a series of "N-Back" working memory tasks. <br /><br /> Here, you will see a series of letters presented one-at-a-time at the center of the screen. <br /><br />Your task will be to make a response on your keyboard as to whether or not the current letter on the screen matches that from <strong>N</strong> trials ago. <br /><br />For demonstration purposes, we will have you complete one of each: 1-back, 2-back, 3-back, and 4-back so you can get a sense of how each works. <br /><br />Importantly, we will tell you which version you will be completing before you get started. <br /><br />Press the <strong class="upperline">C</strong> key on your keyboard to begin.'
         }
         timeline.push(n_back_instructions);
 
@@ -242,7 +248,7 @@
             type: jsPsychHtmlKeyboardResponse,
             choices: ' ',
             post_trial_gap: 1000,
-            stimulus: '<center><strong><u>1-Back task:</u></strong></center> <br />Here, you will indicate whether the current letter on the screen matches that of the letter that came just <strong>1 position</strong> before it (for the first letter of this trial, please make no response as no letter will have came before it). <br /><br />Please press your <strong>left-arrow key</strong> to indicate that the current letter <u>matches</u>, or the <strong>right-arrow key</strong> to indicate that it <u>does not match</u>. <br /><br />Press the <strong class="upperline">SPACEBAR</strong> key on your keyboard to officially begin the 1-back task.'
+            stimulus: '<center><strong><u>1-Back task:</u></strong></center> <br />Here, you will indicate whether the current letter on the screen matches that of the letter that came just <strong>1 position</strong> before it (for the first letter of this trial, please make no response as no letter will have came before it). <br /><br />While the letter is on the screen, please press your <strong>left-arrow key</strong> to indicate that the current letter <u>matches</u>, or the <strong>right-arrow key</strong> to indicate that it <u>does not match</u>. <br /><br />Press the <strong class="upperline">SPACEBAR</strong> key on your keyboard to officially begin the 1-back task.'
         }
         timeline.push(one_back_instructions);
         timeline.push(one_back_procedure);
@@ -251,7 +257,7 @@
             type: jsPsychHtmlKeyboardResponse,
             choices: ' ',
             post_trial_gap: 1000,
-            stimulus: '<center><strong><u>2-Back task:</u></strong></center> <br />Here, you will indicate whether the current letter on the screen matches that of the letter that came <strong>2 positions</strong> before it (for the first two letters of this trial, please make no response as no letter will have come 2 positions before them). <br /><br />Please press your <strong>left-arrow key</strong> to indicate that the current letter <u>matches</u>, or the <strong>right-arrow key</strong> to indicate that it <u>does not match</u>. <br /><br />Press the <strong class="upperline">SPACEBAR</strong> key on your keyboard to officially begin the 2-back task.'
+            stimulus: '<center><strong><u>2-Back task:</u></strong></center> <br />Here, you will indicate whether the current letter on the screen matches that of the letter that came <strong>2 positions</strong> before it (for the first two letters of this trial, please make no response as no letter will have come 2 positions before them). <br /><br />While the letter is on the screen, please press your <strong>left-arrow key</strong> to indicate that the current letter <u>matches</u>, or the <strong>right-arrow key</strong> to indicate that it <u>does not match</u>. <br /><br />Press the <strong class="upperline">SPACEBAR</strong> key on your keyboard to officially begin the 2-back task.'
         }
         timeline.push(two_back_instructions);
         timeline.push(two_back_procedure);
@@ -260,7 +266,7 @@
             type: jsPsychHtmlKeyboardResponse,
             choices: ' ',
             post_trial_gap: 1000,
-            stimulus: '<center><strong><u>3-Back task:</u></strong></center> <br />Here, you will indicate whether the current letter on the screen matches that of the letter that came <strong>3 positions</strong> before it (for the first three letters of this trial, please make no response as no letter will have come 3 positions before them). <br /><br />Please press your <strong>left-arrow key</strong> to indicate that the current letter <u>matches</u>, or the <strong>right-arrow key</strong> to indicate that it <u>does not match</u>. <br /><br />Press the <strong class="upperline">SPACEBAR</strong> key on your keyboard to officially begin the 3-back task.'
+            stimulus: '<center><strong><u>3-Back task:</u></strong></center> <br />Here, you will indicate whether the current letter on the screen matches that of the letter that came <strong>3 positions</strong> before it (for the first three letters of this trial, please make no response as no letter will have come 3 positions before them). <br /><br />While the letter is on the screen, please press your <strong>left-arrow key</strong> to indicate that the current letter <u>matches</u>, or the <strong>right-arrow key</strong> to indicate that it <u>does not match</u>. <br /><br />Press the <strong class="upperline">SPACEBAR</strong> key on your keyboard to officially begin the 3-back task.'
         }
         timeline.push(three_back_instructions);
         timeline.push(three_back_procedure);
@@ -269,7 +275,7 @@
             type: jsPsychHtmlKeyboardResponse,
             choices: ' ',
             post_trial_gap: 1000,
-            stimulus: '<center><strong><u>4-Back task:</u></strong></center> <br />Here, you will indicate whether the current letter on the screen matches that of the letter that came <strong>4 positions</strong> before it (for the first four letters of this trial, please make no response as no letter will have come 4 positions before them). <br /><br />Please press your <strong>left-arrow key</strong> to indicate that the current letter <u>matches</u>, or the <strong>right-arrow key</strong> to indicate that it <u>does not match</u>. <br /><br />Press the <strong class="upperline">SPACEBAR</strong> key on your keyboard to officially begin the 4-back task.'
+            stimulus: '<center><strong><u>4-Back task:</u></strong></center> <br />Here, you will indicate whether the current letter on the screen matches that of the letter that came <strong>4 positions</strong> before it (for the first four letters of this trial, please make no response as no letter will have come 4 positions before them). <br /><br />While the letter is on the screen, please press your <strong>left-arrow key</strong> to indicate that the current letter <u>matches</u>, or the <strong>right-arrow key</strong> to indicate that it <u>does not match</u>. <br /><br />Press the <strong class="upperline">SPACEBAR</strong> key on your keyboard to officially begin the 4-back task.'
         }
         timeline.push(four_back_instructions);
         timeline.push(four_back_procedure);
