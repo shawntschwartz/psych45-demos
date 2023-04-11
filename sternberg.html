@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Psych 45 | Sternberg Task Demo</title>
+    <script src="https://unpkg.com/jspsych@7.3.2"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@1.1.2"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-fullscreen@1.1.0"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-browser-check@1.0.0"></script>
+    <link href="https://unpkg.com/jspsych@7.3.2/css/jspsych.css" rel="stylesheet" type="text/css" />
+    <style>
+        .upperline {
+            text-transform: uppercase;
+            text-decoration: underline;
+        }
+    </style>
+  </head>
+  <body></body>
+  <script>
+        // task constants
+        const STIMSET = ['Y', 'A', 'X', 'P', 'Q', 'E', 'N', 'M', 'T', 'W', 'U', 'S', 'B', 'R'];
+        const ARRAY_TRIAL_TIME = 2500; // 2.5 s
+        const ITI = 1500; // 1.5 s
+        const ISI = 1000; // 1 s
+        const RESP_TRIAL_TIME = 2000; // 2 s
+        const KEYS = ['ArrowLeft', 'ArrowRight'];
+        const NTRIALS = 20; 
+        const NSTIMARRAY = 4; // the number of stimuli per WM sequence
+
+        // init jsPsych
+        var jsPsych = initJsPsych({
+            on_finish: function() {
+                // get current time
+                var timestamp = Date.now();
+
+                // gather and save all data locally
+                var all_data = jsPsych.data.get();
+                all_data.localSave('csv', file_pattern_data + "_" + timestamp + ".csv");
+            }
+        });
+
+        // make random subject id
+        var subject_id = jsPsych.randomization.randomID(15);
+        var study_id = 'sternberg'
+
+        // append study metadata to output data
+        jsPsych.data.addProperties({
+            subject_id: subject_id,
+            study_id: study_id
+        });
+
+        // make filename pattern
+        var file_pattern_data = subject_id + "_" + study_id + "_data_";
+
+        function make_sternberg_sequence(n_trials) {
+            n_match = n_trials / 2;
+            n_mismatch = n_trials - n_match;
+            var is_match = [];
+
+            for (var i = 0; i < n_match; i++) {
+                is_match.push('match');
+            }
+
+            for (var i = 0; i < n_mismatch; i++) {
+                is_match.push('mismatch');
+            }
+
+            is_match = jsPsych.randomization.shuffle(is_match);
+
+            sequences = [];
+            trial_probes = [];
+
+
+            for (var i = 0; i < n_trials; i++) {
+                var trial_array = jsPsych.randomization.sampleWithoutReplacement(STIMSET, NSTIMARRAY+1);
+                
+                if (is_match[i] == 'match') {
+                    trial_array = trial_array.slice(0, 4);
+                    var trial_probe = jsPsych.randomization.sampleWithoutReplacement(trial_array, 1)[0];
+                } else {
+                    var trial_probe = trial_array[4];
+                    trial_array = trial_array.slice(0, 4);
+                }
+
+                sequences.push(trial_array);
+                trial_probes.push(trial_probe);
+            }
+
+            // now make these a dictionary containing the relevant trial level info
+            seq_dict = [];
+
+            for (var i = 0; i < sequences.length; i++) {
+                seq_dict.push({
+                    stimulus: '<div style="font-size: 80px;">' + sequences[i][0] + '&nbsp;&nbsp;' + sequences[i][1] + '&nbsp;&nbsp;' + sequences[i][2] + '&nbsp;&nbsp;' + sequences[i][3] + '</div>',
+                    probe: '<div style="font-size: 80px;">' + trial_probes[i] + '</div>',
+                    match_type: is_match[i],
+                });
+            }
+
+            return seq_dict;
+        }
+
+        // generate nback sequences
+        sternberg_stims_dict = make_sternberg_sequence(NTRIALS);
+
+        // make fixation cross
+        var fixation = {
+            type: jsPsychHtmlKeyboardResponse,
+            stimulus: '<div style="font-size:80px;">+</div>',
+            choices: "NO_KEYS",
+            trial_duration: ITI,
+            data: {
+                phase: 'fixation'
+            }
+        };
+
+        // make blank screen ISI
+        var blank = {
+            type: jsPsychHtmlKeyboardResponse,
+            stimulus: '<div style="font-size:80px;">&nbsp;</div>',
+            choices: "NO_KEYS",
+            trial_duration: ISI,
+            data: {
+                phase: 'blank'
+            }
+        };
+
+        // define sternberg stim array trial
+        var sternberg_array = {
+            type: jsPsychHtmlKeyboardResponse,
+            stimulus: jsPsych.timelineVariable('stimulus'),
+            choices: "NO_KEYS",
+            trial_duration: ARRAY_TRIAL_TIME,
+        };
+
+        // define sternberg stim probe trial
+        var sternberg_probe = {
+            type: jsPsychHtmlKeyboardResponse,
+            stimulus: jsPsych.timelineVariable('probe'),
+            choices: KEYS,
+            trial_duration: ARRAY_TRIAL_TIME,
+            response_ends_trial: false,
+            on_finish: function(data) {
+                // label arrow key response for ease of data analysis
+                if (jsPsych.pluginAPI.compareKeys(data.response, "ArrowLeft")) {
+                    data.response_type = "match"
+                } else if (jsPsych.pluginAPI.compareKeys(data.response, "ArrowRight")) {
+                    data.response_type = "mismatch"
+                } else {
+                    data.response_type = "NO_RESPONSE"
+                }
+
+                // score the trial as correct or incorrect
+                if (jsPsych.pluginAPI.compareKeys(data.response_type, data.match_type)) {
+                    data.correct = true;
+                } else {
+                    data.correct = false;
+                }
+            }
+        };
+
+        // define procedure block
+        var sternberg_procedure = {
+            timeline: [fixation, sternberg_array, blank, sternberg_probe],
+            timeline_variables: sternberg_stims_dict,
+            randomize_order: false,
+            data: {
+                match_type: jsPsych.timelineVariable('match_type')
+            },
+        };
+
+        // create timeline
+        var timeline = [];
+
+        // force browser into full screen mode
+        var enter_fullscreen = {
+            type: jsPsychFullscreen,
+            fullscreen_mode: true
+        };
+        timeline.push(enter_fullscreen);
+
+        // welcome message
+        var welcome = {
+            type: jsPsychHtmlKeyboardResponse,
+            choices: 'c',
+            post_trial_gap: 1000,
+            stimulus: '<strong>Welcome to Part 2 of the Working Memory MiA for Psych 45!</strong> <br /><br />This demo experiment will take about 5 minutes to complete. Please complete all in one sitting. <br /><br />For this study, <strong>please use</strong> a laptop or desktop computer (not a mobile phone or tablet). Also, please use either <u>Chrome or Firefox</u>. <br /><br />Once you begin, <strong>DO NOT</strong> refresh the browser, as the study will reset and you will lose your progress. <br /><br />Press the <strong class="upperline">C</strong> key on your keyboard to move onto the instructions. <br /><br /><u>(if you encounter any technical difficulties, please contact TA Shawn Schwartz: <a href="mailto:stschwartz@stanford.edu?Subject=[Psych45]:%20MiA%20Task%20Demo%20Issue" target="_blank">stschwartz [at] stanford [dot] edu</a>)</u>'
+        };
+        timeline.push(welcome);
+
+        // check browser and ensure user is not on mobile device
+        var check_browser_and_device = {
+            type: jsPsychBrowserCheck,
+            inclusion_function: (data) => {
+                return (data.browser == 'chrome' || data.browser == 'firefox') && data.mobile === false
+            },
+            exclusion_message: () => {
+                if (data.mobile) {
+                    return '<p>You must use a desktop/laptop computer to participate in this experiment.</p>';
+                } else if (data.browser !== 'chrome' || data.browser !== 'firefox') {
+                    return '<p>You must use either Chrome or Firefox as your browser to complete this experiment.</p>';
+                }
+            }
+        };
+        timeline.push(check_browser_and_device);
+
+        // check browser window size
+        var check_window_size = {
+            type: jsPsychBrowserCheck,
+            minimum_width: 1000,
+            minimum_height: 600
+        };
+        timeline.push(check_window_size);
+
+        // instructions
+        var sternberg_instructions = {
+            type: jsPsychHtmlKeyboardResponse,
+            choices: ' ',
+            post_trial_gap: 1000,
+            stimulus: 'You will now complete a different working memory task (Sternberg, 1966). <br /><br /> Here, you will see a series of 4 letters presented at the center of the screen. <br /><br />Following a brief interval, you will then be shown a single letter at the center of the screen. <br /><br />Your task will then make a response on your keyboard as to whether or not the current letter on the screen was in the set of 4 letters that you just encountered on the prior screen. <br /><br />Like the previous demo task, please press your <strong>left-arrow key</strong> to indicate that the current letter <u>was part of the preceding set</u>, or the <strong>right-arrow key</strong> to indicate that it <u>was not part of the preceding set</u>, while the letter is on the screen. <br /><br />Press the <strong class="upperline">SPACEBAR</strong> key on your keyboard to officially begin the task.'
+        }
+        timeline.push(sternberg_instructions);
+        timeline.push(sternberg_procedure);
+
+        var download_data = {
+            type: jsPsychHtmlKeyboardResponse,
+            choices: 'd',
+            post_trial_gap: 1000,
+            stimulus: '<br /><br /><center>Thank you for completing the Sternberg demo study. <br /><br /><strong><u>IMPORTANTLY:</u></strong> Please press the <strong class="upperline">d</strong> key on your keyboard to <strong>download your data file</strong>. <br /><br />Please submit this data file that was just downloaded to your computer via the instructions on Canvas.</center>',
+            on_finish: function() {
+                setTimeout(function() {
+                    document.querySelector('body').innerHTML = "<br /><br /><center><strong>Data successfully downloaded!</strong><br /><br /> Thank you for completing this Working Memory MiA -- please be sure to answer and submit the questions posted on the class website!</center>";
+                }, 750);
+            }
+        }
+        timeline.push(download_data);
+
+        // exit full screen mode
+        var exit_fullscreen = {
+            type: jsPsychFullscreen,
+            fullscreen_mode: false,
+            delay_after: 0
+        };
+        timeline.push(exit_fullscreen);
+
+        // execute experiment
+        jsPsych.run(timeline);
+  </script>
+</html>
