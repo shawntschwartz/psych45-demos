@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Psych 45 | N-Back Tasks Demo</title>
+    <script src="https://unpkg.com/jspsych@7.3.2"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@1.1.2"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-fullscreen@1.1.0"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-browser-check@1.0.0"></script>
+    <link href="https://unpkg.com/jspsych@7.3.2/css/jspsych.css" rel="stylesheet" type="text/css" />
+  </head>
+  <body></body>
+  <script>
+        // task constants
+        const STIMSET = ['Y', 'A', 'X', 'P', 'Q', 'E', 'N', 'M', 'T', 'W', 'U', 'S', 'B', 'R'];
+        const TRIAL_TIME = 100; // 2 s
+        const ITI = 100; // 1.5 s
+        const KEYS = ['ArrowLeft', 'ArrowRight'];
+        const NTRIALS = 4; // for each nback task (80 total)
+
+        // init jsPsych
+        var jsPsych = initJsPsych({
+            on_finish: function() {
+                // get current time
+                var timestamp = Date.now();
+
+                // gather and save all data locally
+                var all_data = jsPsych.data.get();
+                all_data.localSave('csv', file_pattern_data + "_" + timestamp + ".csv");
+            }
+        });
+
+        // make random subject id
+        var subject_id = jsPsych.randomization.randomID(15);
+        var study_id = 'nback'
+
+        // append study metadata to output data
+        jsPsych.data.addProperties({
+            subject_id: subject_id,
+            study_id: study_id
+        });
+
+        // make filename pattern
+        var file_pattern_data = subject_id + "_" + study_id + "_data_";
+
+        function make_nback_sequence(n_back, n_trials) {
+            n_match = n_trials / 2;
+            n_mismatch = n_trials - n_match;
+            var is_match = [];
+
+            for (var i = 0; i < n_match; i++) {
+                is_match.push('match');
+            }
+
+            for (var i = 0; i < n_mismatch; i++) {
+                is_match.push('mismatch');
+            }
+
+            is_match = jsPsych.randomization.shuffle(is_match);
+
+            sequence = [];
+
+            // adapted from: https://github.com/jspsych/tutorials/blob/master/n-back/index.html
+            for (var i = 0; i < n_trials; i++) {
+                if (sequence.length < n_back) {
+                    var stim = jsPsych.randomization.sampleWithoutReplacement(STIMSET, 1)[0];
+                } else {
+                    if (is_match[i] == 'match') {
+                        var stim = sequence[sequence.length - n_back];
+                    } else {
+                        var filler_stims = jsPsych.randomization.sampleWithoutReplacement(STIMSET, 2);
+                        if (filler_stims[0] != sequence[sequence.length - n_back]) {
+                            var stim = filler_stims[0];
+                        } else {
+                            var stim = filler_stims[1];
+                        }
+                    }
+                }
+                sequence.push(stim);
+            }
+
+            // now make these a dictionary containing the relevant trial level info
+            seq_dict = [];
+
+            for (var i = 0; i < sequence.length; i++) {
+                if (i < n_back) {
+                    var exclude_me = true;
+                } else {
+                    var exclude_me = false;
+                }
+
+                seq_dict.push({
+                    stimulus: '<div style="font-size:100px;">' + sequence[i] + '</div>',
+                    match_type: is_match[i],
+                    exclude_trial: exclude_me,
+                });
+            }
+
+            return seq_dict;
+        }
+
+        // generate nback sequences
+        var oneback_stims_dict = make_nback_sequence(1, NTRIALS);
+        var twoback_stims_dict = make_nback_sequence(2, NTRIALS);
+        var threeback_stims_dict = make_nback_sequence(3, NTRIALS);
+        var fourback_stims_dict = make_nback_sequence(4, NTRIALS);
+
+        // make fixation cross
+        var fixation = {
+            type: jsPsychHtmlKeyboardResponse,
+            stimulus: '<div style="font-size:100px;">+</div>',
+            choices: "NO_KEYS",
+            trial_duration: ITI,
+            data: {
+                phase: 'fixation'
+            }
+        };
+
+        // define nback stim trial
+        var nback = {
+            type: jsPsychHtmlKeyboardResponse,
+            stimulus: jsPsych.timelineVariable('stimulus'),
+            choices: KEYS,
+            trial_duration: TRIAL_TIME,
+            response_ends_trial: false,
+            on_finish: function(data) {
+                // label arrow key response for ease of data analysis
+                if (jsPsych.pluginAPI.compareKeys(data.response, "ArrowLeft")) {
+                    data.response_type = "match"
+                } else if (jsPsych.pluginAPI.compareKeys(data.response, "ArrowRight")) {
+                    data.response_type = "mismatch"
+                } else {
+                    data.response_type = "NO_RESPONSE"
+                }
+
+                // score the trial as correct or incorrect
+                if (jsPsych.pluginAPI.compareKeys(data.response, data.match_type)) {
+                    data.correct = true;
+                } else {
+                    data.correct = false;
+                }
+            }
+        };
+
+        // define nback procedure blocks
+        var one_back_procedure = {
+            timeline: [fixation, nback],
+            timeline_variables: oneback_stims_dict,
+            randomize_order: false,
+            data: {
+                phase: '1back',
+                match_type: jsPsych.timelineVariable('match_type'),
+                exclude_trial: jsPsych.timelineVariable('exclude_trial')
+            },
+        };
+
+        var two_back_procedure = {
+            timeline: [fixation, nback],
+            timeline_variables: twoback_stims_dict,
+            randomize_order: false,
+            data: {
+                phase: '2back',
+                match_type: jsPsych.timelineVariable('match_type'),
+                exclude_trial: jsPsych.timelineVariable('exclude_trial')
+            },
+        };
+
+        var three_back_procedure = {
+            timeline: [fixation, nback],
+            timeline_variables: threeback_stims_dict,
+            randomize_order: false,
+            data: {
+                phase: '3back',
+                match_type: jsPsych.timelineVariable('match_type'),
+                exclude_trial: jsPsych.timelineVariable('exclude_trial')
+            },
+        };
+
+        var four_back_procedure = {
+            timeline: [fixation, nback],
+            timeline_variables: fourback_stims_dict,
+            randomize_order: false,
+            data: {
+                phase: '4back',
+                match_type: jsPsych.timelineVariable('match_type'),
+                exclude_trial: jsPsych.timelineVariable('exclude_trial')
+            },
+        };
+
+        // create timeline
+        var timeline = [];
+
+        // force browser into full screen mode
+        var enter_fullscreen = {
+            type: jsPsychFullscreen,
+            fullscreen_mode: true
+        };
+        timeline.push(enter_fullscreen);
+
+        // welcome message
+        var welcome = {
+            type: jsPsychHtmlKeyboardResponse,
+            choices: 'c',
+            post_trial_gap: 1000,
+            stimulus: '<strong>Welcome to the Working Memory MiA for Psych 45!</strong> <br /><br />This demo experiment will take about 10 minutes to complete. Please complete all in one sitting. <br /><br />For this study, <strong>please use</strong> a laptop or desktop computer (not a mobile phone or tablet). Also, please use either <u>Chrome or Firefox</u>. <br /><br />Once you begin, <strong>DO NOT</strong> refresh the browser, as the study will reset and you will lose your progress. <br /><br />Press the <strong class="upperline">C</strong> key on your keyboard to move onto the instructions. <br /><br /><u>(if you encounter any technical difficulties, please contact TA Shawn Schwartz: <a href="mailto:stschwartz@stanford.edu?Subject=[Psych45]:%20MiA%20Task%20Demo%20Issue" target="_blank">stschwartz [at] stanford [dot] edu</a>)</u>'
+        };
+        timeline.push(welcome);
+
+        // check browser and ensure user is not on mobile device
+        var check_browser_and_device = {
+            type: jsPsychBrowserCheck,
+            inclusion_function: (data) => {
+                return (data.browser == 'chrome' || data.browser == 'firefox') && data.mobile === false
+            },
+            exclusion_message: () => {
+                if (data.mobile) {
+                    return '<p>You must use a desktop/laptop computer to participate in this experiment.</p>';
+                } else if (data.browser !== 'chrome' || data.browser !== 'firefox') {
+                    return '<p>You must use either Chrome or Firefox as your browser to complete this experiment.</p>';
+                }
+            }
+        };
+        timeline.push(check_browser_and_device);
+
+        // check browser window size
+        var check_window_size = {
+            type: jsPsychBrowserCheck,
+            minimum_width: 1000,
+            minimum_height: 600
+        };
+        timeline.push(check_window_size);
+
+        // instructions
+        var n_back_instructions = {
+            type: jsPsychHtmlKeyboardResponse,
+            choices: 'c',
+            post_trial_gap: 1000,
+            stimulus: 'You will first complete a series of "N-Back" working memory tasks. <br /><br /> Here, you will see a series of letters presented one-at-a-time at the center of the screen. <br /><br />You will then make a response on your keyboard as to whether or not the current letter on the screen matches that from <strong>N</strong> trials ago. <br /><br />For demonstration purposes, we will have you complete one of each: 1-back, 2-back, 3-back, and 4-back so you can get a sense of how each works. <br /><br />Importantly, we will tell you which version you will be completing before you get started. <br /><br />Press the <strong class="upperline">C</strong> key on your keyboard to begin.'
+        }
+        timeline.push(n_back_instructions);
+
+        var one_back_instructions = {
+            type: jsPsychHtmlKeyboardResponse,
+            choices: ' ',
+            post_trial_gap: 1000,
+            stimulus: '<center><strong><u>1-Back task:</u></strong></center> <br />Here, you will indicate whether the current letter on the screen matches that of the letter that came just <strong>1 position</strong> before it (for the first letter of this trial, please make no response as no letter will have came before it). <br /><br />Please press your <strong>left-arrow key</strong> to indicate that the current letter <u>matches</u>, or the <strong>right-arrow key</strong> to indicate that it <u>does not match</u>. <br /><br />Press the <strong class="upperline">SPACEBAR</strong> key on your keyboard to officially begin the 1-back task.'
+        }
+        timeline.push(one_back_instructions);
+        timeline.push(one_back_procedure);
+
+        var two_back_instructions = {
+            type: jsPsychHtmlKeyboardResponse,
+            choices: ' ',
+            post_trial_gap: 1000,
+            stimulus: '<center><strong><u>2-Back task:</u></strong></center> <br />Here, you will indicate whether the current letter on the screen matches that of the letter that came <strong>2 positions</strong> before it (for the first two letters of this trial, please make no response as no letter will have come 2 positions before them). <br /><br />Please press your <strong>left-arrow key</strong> to indicate that the current letter <u>matches</u>, or the <strong>right-arrow key</strong> to indicate that it <u>does not match</u>. <br /><br />Press the <strong class="upperline">SPACEBAR</strong> key on your keyboard to officially begin the 2-back task.'
+        }
+        timeline.push(two_back_instructions);
+        timeline.push(two_back_procedure);
+
+        var three_back_instructions = {
+            type: jsPsychHtmlKeyboardResponse,
+            choices: ' ',
+            post_trial_gap: 1000,
+            stimulus: '<center><strong><u>3-Back task:</u></strong></center> <br />Here, you will indicate whether the current letter on the screen matches that of the letter that came <strong>3 positions</strong> before it (for the first three letters of this trial, please make no response as no letter will have come 3 positions before them). <br /><br />Please press your <strong>left-arrow key</strong> to indicate that the current letter <u>matches</u>, or the <strong>right-arrow key</strong> to indicate that it <u>does not match</u>. <br /><br />Press the <strong class="upperline">SPACEBAR</strong> key on your keyboard to officially begin the 3-back task.'
+        }
+        timeline.push(three_back_instructions);
+        timeline.push(three_back_procedure);
+
+        var four_back_instructions = {
+            type: jsPsychHtmlKeyboardResponse,
+            choices: ' ',
+            post_trial_gap: 1000,
+            stimulus: '<center><strong><u>4-Back task:</u></strong></center> <br />Here, you will indicate whether the current letter on the screen matches that of the letter that came <strong>4 positions</strong> before it (for the first four letters of this trial, please make no response as no letter will have come 4 positions before them). <br /><br />Please press your <strong>left-arrow key</strong> to indicate that the current letter <u>matches</u>, or the <strong>right-arrow key</strong> to indicate that it <u>does not match</u>. <br /><br />Press the <strong class="upperline">SPACEBAR</strong> key on your keyboard to officially begin the 4-back task.'
+        }
+        timeline.push(four_back_instructions);
+        timeline.push(four_back_procedure);
+
+        var download_data = {
+            type: jsPsychHtmlKeyboardResponse,
+            choices: 'd',
+            post_trial_gap: 1000,
+            stimulus: '<br /><br /><center>Thank you for completing the N-Back demo study. <br /><br /><strong><u>IMPORTANTLY:</u></strong> Please press the <strong class="upperline">d</strong> key on your keyboard to <strong>download your data file</strong>. <br /><br />Please submit this data file that was just downloaded to your computer via the instructions on Canvas.</center>',
+            on_finish: function() {
+                setTimeout(function() {
+                    document.querySelector('body').innerHTML = "<br /><br /><center><strong>Data successfully downloaded!</strong><br /><br />Now, please continue on to the second part of this Working Memory MiA: <a href='sternberg.html' target='_blank'>the Sternberg Working Memory Task</a>. Thank you!</center>";
+                }, 750);
+            }
+        }
+        timeline.push(download_data);
+
+        // exit full screen mode
+        var exit_fullscreen = {
+            type: jsPsychFullscreen,
+            fullscreen_mode: false,
+            delay_after: 0
+        };
+        timeline.push(exit_fullscreen);
+
+        // execute experiment
+        jsPsych.run(timeline);
+  </script>
+</html>
