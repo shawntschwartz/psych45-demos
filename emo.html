@@ -1,0 +1,148 @@
+
+<!-- Modified from A. Zeynep Enkavi: https://web.stanford.edu/~zenkavi/emo/emo.html -->
+<!-- ## Code -->
+<html>
+<head>
+  
+  <title>Emo</title>
+	
+  <!-- Include the [jQuery library](http://jquery.com/), which helps you manipulate HTML elements from JS. -->
+  <script src="src/jquery-1.11.2.min.js"></script>
+	
+  <!-- Include mmturkey: http://github.com/longouyang/mmturkey -->
+  <script src="src/mmturkey-0.6.js"></script>
+	
+  <!-- Include CSS sheet -->
+  <link rel="stylesheet" href="src/emo.css" />
+
+</head>
+
+
+<body>
+  
+  <!-- The restrict-to-chrome slide -->
+  <div class="slide" id="chrome">
+    <br><br>
+    <p class="block-text">
+    We strongly suggest using Chrome as your browser. <br><br>
+    You can try the demo in a different browser, but it may not work properly. <br><br>
+    </p>
+    <div class="block-text">
+      <button type="button" onclick="this.blur(); experiment.init()">Continue Anyway</button>
+    </div>
+  </div>
+
+<!-- The instructions slide -->
+<div class="slide" id="instructions">
+
+	<p class="block-text", style="text-align: left; top: 15%">
+	  In this experiment, you will see a series of words displayed on the screen.<br><br>
+      After the list ends, your job is to remember as many words from the list as possible.<br><br>
+      Once the last word is shown, a text box will appear for you to write down the words you remember.<br><br>
+     </p>
+  
+
+	<!-- Button to start the experiment. <code>this.blur()</code> removes the focus from the button, if the user pressed the button by using the keyboard, rather than the mouse. -->
+	<button type="button" onclick="this.blur(); experiment.leadin()">START</button>
+
+</div>
+
+<!-- The "leadin" slide. -->
+<div class="slide" id="leadin">
+	<p style="text-align: center; top: 50%; position: relative" id="readytext"> Get ready ...</p>
+</div>
+
+<!-- The "stage" slide - where the bulk of the experiment will be displayed. -->
+<div class="slide" id="stage">
+	<p style="text-align: center; top: 40%; position: relative" id="encword">{{}}</p>
+</div>
+
+<!-- The "delay" slide - impose a delay between study and test. -->
+<div class="slide" id="delay">
+  
+	<p style="text-align: center; top: 50%; position: relative">
+		We'll wait for 15 seconds before testing your memory.<br>
+		During this entire time, say 'bah bah bah ..' out loud
+	</p>
+  
+</div>
+
+<!-- The "retrieval" slide. -->
+<div class="slide" style="text-align: center; top: 15%" id="retrieval">
+	
+	<form id="form_retrieval" onsubmit="return false">
+		Write any words that you remember in the box.
+		<br>
+		Then click 'submit'.
+		<br><br>
+		<textarea style="height: 25%; width: 50%" name="words"></textarea>
+		<br><br>
+		<input type="submit"</a>
+		<br><br>
+	</form>
+
+</div>
+
+<!-- The "results" slide. -->
+<div class="slide" style="text-align: left; top: 5%" id="results">
+  
+  
+    <div>
+	<b>When you're ready to submit your results, click on the button below. Before that, check out the list below to see which words you remembered!
+    </b>
+  </div>
+  
+  <br>
+    <div>
+  <br><br>
+  <button type="button" onclick="this.blur(); experiment.finish()">Submit results!</button>
+ 	</div>
+   <br>
+  <div>
+    <span style="font-size: 20px"<b>Your results:</b></span>
+    <br><br>
+  </div>
+  
+  <br>
+  
+  
+  <div>
+		<b>Here is the list that you saw. There were 15 negative words, 15 positive words, and 15 neutral words.<br>
+		The words that you remembered are in bold. Negative words are red, positive words are green, and neutral words are purple.<br>
+    </b>
+    <br>
+
+		<ul id="feedback" style="list-style-type:none">
+		</ul>
+
+	</div>
+     
+  <br>
+  
+
+  
+</div>
+
+<!-- The finish slide. -->
+<div class="slide" id="finished" >
+
+<!--
+<div class="block-text" style="top: 15%">
+      <br><br>
+    	You're finished!<br><br>
+      	Please be sure to turn in your answers to the MIA questions!
+        <br><br>
+        <br><br>
+  	</div>
+ --> 
+</div>
+
+<!-- Fingerprint -->
+<script src="src/fingerprint1.js"></script>
+
+<!-- Include the JavaScript file for the experiment. As written, that script immediately executes commands, so we include it here at the end of the HTML file to ensure that resources referenced by the script actually exist. -->
+<script src="src/emo.js"></script>
+
+</body>
+
+</html>
