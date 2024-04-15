@@ -1,0 +1,139 @@
+---
+title: "mia 1 - results"
+author: "shawn schwartz"
+date: "`r tolower(format(Sys.time(), '%A %B %d, %Y @ %X'))`"
+output: 
+  html_document:
+    highlight: tango
+    theme: cosmo
+    df_print: paged
+    toc: true
+    toc_float: 
+      collapsed: false
+    toc_depth: 4
+    number_sections: true
+---
+
+# sternberg and n-back
+
+## load libs
+```{r warning=FALSE, message=FALSE}
+library("tidyverse")
+```
+
+## plot settings
+```{r}
+txt <- element_text(size = 17, family = "Avenir", color = "black")
+
+theme_set(
+  theme_classic() +
+    theme(legend.position = "none",
+          text = txt,
+          axis.text = txt)
+)
+```
+
+## load raw data
+```{r warning=FALSE, message=FALSE}
+path.data <- file.path("~", "Downloads", "mia1_submissions")
+
+df.sternberg <- path.data %>% 
+  list.files(pattern = ".*sternberg.*csv",
+             full.names = TRUE) %>% 
+  read_csv(show_col_types = FALSE) %>% 
+  filter(!is.na(response_type)) %>% 
+  select(subject_id,
+         trial_index,
+         match_type,
+         response_type,
+         correct,
+         rt) %>% 
+  unique() %>% 
+  mutate(acc = as.numeric(correct),
+         rt = as.numeric(rt),
+         lnrt = log(rt))
+
+df.nback <- path.data %>% 
+  list.files(pattern = ".*nback.*csv",
+             full.names = TRUE) %>% 
+  read_csv(show_col_types = FALSE) %>% 
+  filter(!is.na(response_type)) %>% 
+  filter(!exclude_trial) %>% 
+  select(subject_id, 
+         trial_index,
+         phase,
+         match_type,
+         response_type,
+         correct,
+         rt) %>% 
+  unique() %>% 
+  filter(response_type != "NO_RESPONSE") %>% 
+  mutate(acc = as.numeric(correct),
+         acc_labs = ifelse(correct, "correct", "incorrect"),
+         rt = as.numeric(rt),
+         lnrt = log(rt))
+```
+
+## sternberg results (*N =* `r df.sternberg %>% pull(subject_id) %>% unique %>% length`)
+
+### accuracy
+```{r fig.width=8, fig.height=8}
+df.sternberg %>% 
+  group_by(subject_id) %>% 
+  summarise(mean_acc = mean(acc)) %>% 
+  ggplot(mapping = aes(x = "Sternberg",
+                       y = mean_acc)) +
+  geom_jitter(width = 0.2,
+              height = 0,
+              alpha = 0.3,
+              size = 4) +
+  stat_summary(fun.data = "mean_cl_boot",
+               color = "blue",
+               size = 1) +
+  labs(title = "Sternberg Task - Psych 45 Students - Spring 2024",
+       subtitle = paste0("(N = ", df.sternberg %>% pull(subject_id) %>% unique %>% length, ")"),
+       x = "",
+       y = "Proportion correct")
+```
+
+## n-back results (*N =* `r df.nback %>% pull(subject_id) %>% unique %>% length`)
+
+### accuracy
+```{r fig.width=8, fig.height=8, warning=FALSE, message=FALSE}
+df.nback %>% 
+  group_by(subject_id, phase) %>% 
+  summarise(mean_acc = mean(acc)) %>% 
+  ggplot(mapping = aes(x = phase,
+                       y = mean_acc,
+                       color = phase,
+                       fill = phase)) +
+  geom_jitter(width = 0.2,
+              height = 0,
+              alpha = 0.3,
+              size = 4) +
+  stat_summary(fun.data = "mean_cl_boot",
+               color = "black",
+               size = 1) +
+  labs(title = "N-Back Task - Psych 45 Students - Spring 2024",
+       subtitle = paste0("(N = ", df.nback %>% pull(subject_id) %>% unique %>% length, ")"),
+       x = "",
+       y = "Proportion correct") +
+  scale_color_brewer(palette = "Set1")
+```
+
+### reaction time
+```{r fig.width=10, fig.height=8}
+df.nback %>% 
+  ggplot(mapping = aes(x = acc_labs,
+                       y = lnrt,
+                       color = phase)) +
+  stat_summary(fun.data = "mean_cl_boot",
+               size = 1) +
+  labs(title = "N-Back Task - Psych 45 Students - Spring 2024",
+       subtitle = paste0("(N = ", df.nback %>% pull(subject_id) %>% unique %>% length, ")"),
+       x = "",
+       y = "ln(RT)") +
+  facet_grid(rows = ~phase) +
+  scale_color_brewer(palette = "Set1")
+```
+
