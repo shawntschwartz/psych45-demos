@@ -1,0 +1,178 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Psych 45 | Event Boundaries Demo</title>
+    <script src="https://unpkg.com/jspsych@7.3.2"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@1.1.2"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-fullscreen@1.1.0"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-browser-check@1.0.0"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-video-keyboard-response@1.0.0"></script>
+    <link href="https://unpkg.com/jspsych@7.3.2/css/jspsych.css" rel="stylesheet" type="text/css" />
+    <style>
+        .upperline {
+            text-transform: uppercase;
+            text-decoration: underline;
+        }
+    </style>
+  </head>
+  <body></body>
+  <script>
+        // init jsPsych
+        var jsPsych = initJsPsych({
+            override_safe_mode: true,
+            on_finish: function() {
+                // get current time
+                var timestamp = Date.now();
+
+                // gather and save all data locally
+                var all_data = jsPsych.data.get();
+                all_data.localSave('csv', file_pattern_data + "_" + timestamp + ".csv");
+            }
+        });
+
+        // make random subject id
+        var subject_id = jsPsych.randomization.randomID(15);
+        var study_id = 'nback'
+
+        // append study metadata to output data
+        jsPsych.data.addProperties({
+            subject_id: subject_id,
+            study_id: study_id
+        });
+
+        // make filename pattern
+        var file_pattern_data = subject_id + "_" + study_id + "_data_";
+
+
+        var response_times = [];
+        var startTime = 0;
+
+        // Function to handle space bar press
+        function handleSpaceBarPress(event) {
+          if (event.key === " " || event.keyCode === 32) {
+            response_times.push(jsPsych.getTotalTime() - startTime);
+          }
+        }
+
+        var record_button_presses = function() {
+            // Add event listener for keydown event
+            document.addEventListener("keydown", handleSpaceBarPress);      
+        }
+        
+        var video_trial = {
+          type: jsPsychVideoKeyboardResponse,
+          stimulus: [
+            'video/Gardening 25 FPS.mp4'
+          ],
+          choices: "NO_KEYS",
+          response_ends_trial: false,
+          trial_ends_after_video: true
+        };
+
+        var video_trial_with_rsp = {
+          type: jsPsychVideoKeyboardResponse,
+          stimulus: [
+            'video/Gardening 25 FPS.mp4'
+          ],
+          choices: [" "],
+          response_ends_trial: false,
+          trial_ends_after_video: true,
+          on_load: function() {
+            startTime = jsPsych.getTotalTime();
+            record_button_presses();
+          },
+          on_finish: function(data){
+            data.response_times = response_times;
+          }
+        };
+
+        // create timeline
+        var timeline = [];
+
+        // force browser into full screen mode
+        var enter_fullscreen = {
+            type: jsPsychFullscreen,
+            fullscreen_mode: true
+        };
+        timeline.push(enter_fullscreen);
+
+        // welcome message
+        var welcome = {
+            type: jsPsychHtmlKeyboardResponse,
+            choices: ' ',
+            post_trial_gap: 500,
+            stimulus: '<strong>Welcome to the Event Boundaries MiA for Psych 45!</strong> <br /><br />This demo experiment will take about 10 minutes to complete. Please complete all in one sitting. <br /><br />For this study, <strong>please use</strong> a laptop or desktop computer (not a mobile phone or tablet). Also, please use either <u>Chrome or Firefox</u>. <br /><br />Once you begin, <strong>DO NOT</strong> refresh the browser, as the study will reset and you will lose your progress. <br /><br />Press the <strong class="upperline">spacebar</strong> on your keyboard to move onto the instructions. <br /><br /><u>(if you encounter any technical difficulties, please contact TA Shawn Schwartz: <a href="mailto:stschwartz@stanford.edu?Subject=[Psych45]:%20MiA%20Task%20Demo%20Issue" target="_blank">stschwartz [at] stanford [dot] edu</a>)</u>'
+        };
+        timeline.push(welcome);
+
+        // check browser and ensure user is not on mobile device
+        var check_browser_and_device = {
+            type: jsPsychBrowserCheck,
+            inclusion_function: (data) => {
+                return (data.browser == 'chrome' || data.browser == 'firefox') && data.mobile === false
+            },
+            exclusion_message: () => {
+                if (data.mobile) {
+                    return '<p>You must use a desktop/laptop computer to participate in this experiment.</p>';
+                } else if (data.browser !== 'chrome' || data.browser !== 'firefox') {
+                    return '<p>You must use either Chrome or Firefox as your browser to complete this experiment.</p>';
+                }
+            }
+        };
+        timeline.push(check_browser_and_device);
+
+        // check browser window size
+        var check_window_size = {
+            type: jsPsychBrowserCheck,
+            minimum_width: 1000,
+            minimum_height: 600
+        };
+        timeline.push(check_window_size);
+
+        // instructions
+        var instructions_1 = {
+            type: jsPsychHtmlKeyboardResponse,
+            choices: ' ',
+            post_trial_gap: 500,
+            stimulus: 'In this study, you will watch a 5 minute video twice. During the first viewing, you will simply be asked to watch the video and will not be asked to make any responses. During the second viewing, your goal will be to identify whenever one meaningful unit of activity ends and another begins; you will press the space bar to mark these boundaries.<br /><br />Press the <strong class="upperline">spacebar</strong> on your keyboard to start the video. Again, during this part of the study, do NOT make any responses.'
+        }
+
+        timeline.push(instructions_1);
+
+        var instructions_2 = {
+            type: jsPsychHtmlKeyboardResponse,
+            choices: ' ',
+            post_trial_gap: 500,
+            stimulus: '<br />Now that you have familiarized yourself with the video, we will ask you to watch it again. Your goal is to identify whenever one meaningful unit of activity ends and another begins; press the space bar to mark these boundaries.<br /><br />Press the <strong class="upperline">SPACEBAR</strong> key on your keyboard to begin.'
+        }
+        timeline.push(video_trial);
+        timeline.push(instructions_2);
+        timeline.push(video_trial_with_rsp);
+
+
+        var download_data = {
+            type: jsPsychHtmlKeyboardResponse,
+            choices: 'd',
+            post_trial_gap: 1000,
+            stimulus: '<br /><br /><center>Thank you for completing the Event Boundary demo study. <br /><br /><strong><u>IMPORTANTLY:</u></strong> Please press the <strong class="upperline">d</strong> key on your keyboard to <strong>download your data file</strong>. <br /><br />Please submit this data file that was just downloaded to your computer via the instructions on Canvas.</center>',
+            on_finish: function() {
+                setTimeout(function() {
+                    document.querySelector('body').innerHTML = "<br /><br /><center><strong>Data successfully downloaded!</strong><br /><br />Thank you!</center>";
+                }, 750);
+            }
+        }
+        timeline.push(download_data);
+
+        // exit full screen mode
+        var exit_fullscreen = {
+            type: jsPsychFullscreen,
+            fullscreen_mode: false,
+            delay_after: 0
+        };
+        timeline.push(exit_fullscreen);
+
+        // execute experiment
+        jsPsych.run(timeline);
+  </script>
+</html>
