@@ -1,0 +1,104 @@
+---
+title: "mia 2 - results"
+author: "shawn schwartz"
+date: "`r tolower(format(Sys.time(), '%A %B %d, %Y @ %X'))`"
+output: 
+  html_document:
+    highlight: tango
+    theme: cosmo
+    df_print: paged
+    toc: true
+    toc_float: 
+      collapsed: false
+    toc_depth: 4
+    number_sections: true
+---
+
+# stroop task
+
+## load libs
+```{r warning=FALSE, message=FALSE}
+library("tidyverse")
+```
+
+## plot settings
+```{r}
+txt <- element_text(size = 30, family = "Avenir", color = "black")
+
+theme_set(
+  theme_classic() +
+    theme(legend.position = "none",
+          text = txt,
+          axis.text = txt)
+)
+```
+
+## load raw data
+```{r warning=FALSE, message=FALSE}
+path.data <- file.path("~", "Downloads", "mia2_submissions.csv")
+
+df.stroop <- path.data %>% 
+  read_csv(show_col_types = FALSE) %>% 
+  separate("Timestamp", into = c("date", "time"), sep = " ") %>% 
+  mutate(date = mdy(date), year = year(date)) %>% 
+  filter(year == 2024) %>% 
+  select(-date, -time) %>% 
+  unique() %>% 
+  rename(congruent = `Task 1: Copy & paste the amount of time (secs) elapsed it took you to complete \"The easy practice test\"`,
+         incongruent = `Task 2: Copy & paste the amount of time (secs) elapsed it took you to complete \"The real hard test\"`,
+         email = `Email Address`) %>% 
+  mutate(ln_congruent = log(congruent),
+         ln_incongruent = log(incongruent))
+```
+
+### independently detect outliers in each condition and remove all their data
+```{r}
+vec.congruent_outliers <- df.stroop %>% 
+  rstatix::identify_outliers(congruent) %>% 
+  pull(Name)
+
+vec.incongruent_outliers <- df.stroop %>% 
+  rstatix::identify_outliers(incongruent) %>% 
+  pull(Name)
+
+vec.outlier_ids <- c(vec.congruent_outliers, vec.incongruent_outliers)
+
+df.stroop <- df.stroop %>% 
+  filter(!Name %in% vec.outlier_ids)
+```
+
+* There were `r length(vec.congruent_outliers)` outliers identified in the congruent RTs.
+* There were `r length(vec.incongruent_outliers)` outliers identified in the incongruent RTs.
+
+## stroop task results (*N =* `r df.stroop %>% pull(email) %>% unique %>% length`)
+
+### rt
+```{r fig.width=8, fig.height=8, warning=FALSE}
+set.seed(100)
+
+df.stroop %>% 
+  select(Name, ln_congruent, ln_incongruent) %>% 
+  pivot_longer(cols = starts_with("ln_"),
+               names_to = "condition",
+               names_prefix = "ln_",
+               values_to = "rt") %>% 
+  ggplot(mapping = aes(x = condition,
+                       y = rt,
+                       color = condition)) +
+  geom_jitter(width = 0.15,
+              height = 0,
+              alpha = 0.3,
+              size = 6.5) +
+  stat_summary(geom = "linerange", 
+               fun.data = mean_cl_boot, 
+               linewidth = 2,
+               col = "black") +
+  stat_summary(fun = mean,
+               size = 1,
+               col = "black") +
+  labs(title = "Stroop Task",
+       subtitle = paste0("Psych 45 - Spring 2024 (N = ", df.stroop %>% pull(email) %>% unique %>% length, ")"),
+       x = "",
+       y = "ln(RT)") +
+  scale_color_brewer(palette = "Set1")
+```
