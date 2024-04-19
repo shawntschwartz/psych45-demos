@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
   <head>
@@ -44,7 +43,6 @@
         // make filename pattern
         var file_pattern_data = subject_id + "_" + study_id + "_data_";
 
-
         var response_times = [];
         var startTime = 0;
 
@@ -63,7 +61,7 @@
         var video_trial = {
           type: jsPsychVideoKeyboardResponse,
           stimulus: [
-            'video/Gardening 25 FPS.mp4'
+            'video/gardening_25fps.mp4'
           ],
           choices: "NO_KEYS",
           response_ends_trial: false,
@@ -73,7 +71,7 @@
         var video_trial_with_rsp = {
           type: jsPsychVideoKeyboardResponse,
           stimulus: [
-            'video/Gardening 25 FPS.mp4'
+            'video/gardening_25fps.mp4'
           ],
           choices: [" "],
           response_ends_trial: false,
@@ -133,23 +131,22 @@
         // instructions
         var instructions_1 = {
             type: jsPsychHtmlKeyboardResponse,
-            choices: ' ',
+            choices: 'b',
             post_trial_gap: 500,
-            stimulus: 'In this study, you will watch a 5 minute video twice. During the first viewing, you will simply be asked to watch the video and will not be asked to make any responses. During the second viewing, your goal will be to identify whenever one meaningful unit of activity ends and another begins; you will press the space bar to mark these boundaries.<br /><br />Press the <strong class="upperline">spacebar</strong> on your keyboard to start the video. Again, during this part of the study, do NOT make any responses.'
+            stimulus: 'In this study, you will watch a 5 minute video twice. During the first viewing, you will simply be asked to watch the video and <strong>will not be asked</strong> to make any responses.<br /><br />During the second viewing, <strong>your goal will be to identify whenever one meaningful unit of activity ends and another begins</strong>; you will press the <strong class="upperline">SPACEBAR</strong> to mark these boundaries.<br /><br />Now, press the <strong class="upperline">b</strong> on your keyboard to start the video. Again, during this first part of the study, please <strong>do NOT</strong> make any responses.'
         }
 
         timeline.push(instructions_1);
 
         var instructions_2 = {
             type: jsPsychHtmlKeyboardResponse,
-            choices: ' ',
+            choices: 'b',
             post_trial_gap: 500,
-            stimulus: '<br />Now that you have familiarized yourself with the video, we will ask you to watch it again. Your goal is to identify whenever one meaningful unit of activity ends and another begins; press the space bar to mark these boundaries.<br /><br />Press the <strong class="upperline">SPACEBAR</strong> key on your keyboard to begin.'
+            stimulus: '<br />Now that you have familiarized yourself with the video, we will ask you to watch it once more. Again, <strong>your goal is to identify whenever one meaningful unit of activity ends and another begins</strong>; importantly, press the <strong class="upperline">spacebar</strong> to mark these boundaries <strong>while watching the video</strong>.<br /><br />Now, press the <strong class="upperline">b</strong> key on your keyboard to begin.'
         }
         timeline.push(video_trial);
         timeline.push(instructions_2);
         timeline.push(video_trial_with_rsp);
-
 
         var download_data = {
             type: jsPsychHtmlKeyboardResponse,
