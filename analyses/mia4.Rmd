@@ -1,0 +1,74 @@
+---
+title: "mia 4 - results"
+author: "shawn schwartz"
+date: "`r tolower(format(Sys.time(), '%A %B %d, %Y @ %X'))`"
+output: 
+  html_document:
+    highlight: tango
+    theme: cosmo
+    df_print: paged
+    toc: true
+    toc_float: 
+      collapsed: false
+    toc_depth: 4
+    number_sections: true
+---
+
+# Category "goodness" ranking task task
+
+> For each of the categories below, rank each member of the category on a scale of 1-7, where 1 means that the item is a ‘very good example’ of that category, and 7 means that the item is a ‘poor example’ of that category.
+
+## load libs
+```{r warning=FALSE, message=FALSE}
+library("tidyverse")
+```
+
+## plot settings
+```{r}
+txt <- element_text(size = 18, family = "Avenir", color = "black")
+txt.x.rot <- element_text(size = 14, family = "Avenir", color = "black", angle = 45, vjust = 0.5)
+txt.y.rot <- element_text(size = 14, family = "Avenir", color = "black", angle = 0)
+
+theme_set(
+  theme_classic() +
+    theme(legend.position = "none",
+          text = txt,
+          axis.text.x = txt.x.rot,
+          axis.text.y = txt.y.rot)
+)
+```
+
+## load raw data
+```{r warning=FALSE, message=FALSE}
+path.data <- file.path("~", "Downloads", "mia4_submissions.csv")
+
+df.semantic <- path.data %>% 
+  read_csv(show_col_types = FALSE) %>% 
+  select(-Timestamp, -`Email Address`, -Name, -`SUNet ID`) %>% 
+  pivot_longer(everything()) %>% 
+  separate(name, c("type", "instance")) %>% 
+  mutate(value = 8 - value) # reverse score the ratings
+```
+
+
+## category rating task results (*N =* `r path.data %>% read_csv(show_col_types = FALSE) %>% pull(Name) %>% unique %>% length`)
+
+```{r fig.width=7, fig.height=7, warning=FALSE}
+set.seed(100)
+
+df.semantic %>% 
+  ggplot(mapping = aes(x = reorder(instance, value),
+                       y = value, 
+                       color = type)) +
+  geom_jitter(width = 0.2,
+              height = 0.1,
+              alpha = 0.3) +
+  stat_summary(fun.data = mean_cl_boot,
+               color = "black") +
+  labs(title = "Category \"goodness\" ranking task",
+       subtitle = paste0("Psych 45 - Spring 2024 (N = ", path.data %>% read_csv(show_col_types = FALSE) %>% pull(`SUNet ID`) %>% unique %>% length, ")"),
+       x = "",
+       y = "\"Goodness\" as example of class") +
+  facet_wrap(~type, 
+             scales = "free_x")
+```
