@@ -1,0 +1,196 @@
+---
+title: "mia 5 - results"
+author: "shawn schwartz"
+date: "`r tolower(format(Sys.time(), '%A %B %d, %Y @ %X'))`"
+output: 
+  html_document:
+    highlight: tango
+    theme: cosmo
+    df_print: paged
+    toc: true
+    toc_float: 
+      collapsed: false
+    toc_depth: 4
+    number_sections: true
+---
+
+# emotion and memory
+
+## load libs
+```{r warning=FALSE, message=FALSE}
+library("tidyverse")
+```
+
+## plot settings
+```{r}
+txt <- element_text(size = 18, family = "Avenir", color = "black")
+txt.x.rot <- element_text(size = 14, family = "Avenir", color = "black", angle = 45, vjust = 0.5)
+txt.y.rot <- element_text(size = 14, family = "Avenir", color = "black", angle = 0)
+
+theme_set(
+  theme_classic() +
+    theme(legend.position = "none",
+          text = txt,
+          axis.text.x = txt.x.rot,
+          axis.text.y = txt.y.rot)
+)
+```
+
+## load raw data and parse response vectors
+```{r warning=FALSE, message=FALSE}
+longify = function(data){
+  words <- unlist(
+    strsplit(
+      gsub("\"|\\[|\\]| |\n", "", as.character(data$Words)), 
+      ",")
+    )
+  
+  responses <- unlist(
+    strsplit(
+      gsub("\"|\\[|\\]| |\n", "", as.character(data$Responses)), 
+      ",")
+  )
+  
+  if (length(words) == length(responses)) {
+    out <- data.frame(word = words, response = responses)
+  } else {
+    warning <- paste("warning: longify failes for subject", unique(data$Name))
+    out <- data.frame(word = warning, response = NA)
+  }
+  
+   return(out)
+}
+df.valence_ratings <- read_csv("valence_ratings.csv",
+                               show_col_types = FALSE) %>% 
+  mutate(word = as.character(word))
+
+path.data <- file.path("~", "Downloads", "mia5_submissions.csv")
+
+df.emo <- path.data %>% 
+  read_csv(show_col_types = FALSE) %>% 
+  distinct(Name, .keep_all = TRUE) %>% 
+  group_by(Name) %>% 
+  do(longify(.)) %>% 
+  drop_na() %>% 
+  left_join(df.valence_ratings, by = "word") %>% 
+  mutate(response = as.numeric(response)) %>% 
+  filter(!is.na(valence))
+```
+
+## valence
+
+> proportion words recalled as a function of valence?
+
+```{r fig.width=7, fig.height=7, warning=FALSE}
+set.seed(100)
+
+df.emo %>% 
+  ggplot(mapping = aes(x = valence,
+                       y = response,
+                       color = valence)) +
+  stat_summary(fun.data = "mean_cl_boot",
+               fill = "black",
+               size = 1) +
+  scale_color_manual(values = c(
+    "negative" = "red", 
+    "neutral" = "blue",
+    "positive" = "green")
+  ) +
+  labs(title = "Valence and Memory",
+       subtitle = paste0("Psych 45 - Spring 2024 (N = ", df.emo %>% pull(Name) %>% unique %>% length, ")"),
+       x = "valence",
+       y = "proportion remembered") +
+  coord_cartesian(ylim = c(0, 0.5))
+```
+
+> positive/negative words (i.e., more valenced words) are better remembered than the neutral words.
+
+> exemplars of best remembered words:
+
+```{r}
+df.emo %>% 
+  group_by(word) %>% 
+  summarise(prop_recall = sum(as.numeric(response))/n()) %>% 
+  arrange(-prop_recall) %>% 
+  head(15) %>% 
+  DT::datatable()
+```
+
+## presentation order (i.e., primacy/recency effect)
+```{r}
+df.serial <- df.emo %>% 
+  group_by(Name) %>% 
+  mutate(serial_pos = 1:n()) %>% 
+  mutate(serial_cat = ifelse(serial_pos < 6, "primacy",
+                             ifelse(serial_pos > 40, "recency",
+                                    "middle of list"))) %>% 
+  mutate(serial_cat = factor(serial_cat,
+                             levels = c("primacy", "middle of list", "recency"))) %>%
+  ungroup()
+
+df.serial %>% 
+  group_by(serial_cat) %>% 
+  ggplot(mapping = aes(x = serial_cat,
+                       y = response)) +
+  stat_summary(fun.data = "mean_cl_boot",
+               fill = "black",
+               size = 1) +
+  labs(title = "Serial Position Effect",
+       subtitle = paste0("Psych 45 - Spring 2024 (N = ", df.emo %>% pull(Name) %>% unique %>% length, ")"),
+       x = "list position",
+       y = "proportion remembered") +
+  coord_cartesian(ylim = c(0.3, 0.6))
+  
+df.serial %>% 
+  group_by(serial_pos) %>% 
+  ggplot(mapping = aes(x = serial_pos,
+                       y = response)) +
+  stat_summary(fun.data = "mean_cl_boot",
+               fill = "black",
+               size = 1) +
+  geom_smooth() +
+  labs(title = "Serial Position Effect",
+       subtitle = paste0("Psych 45 - Spring 2024 (N = ", df.emo %>% pull(Name) %>% unique %>% length, ")"),
+       x = "list position",
+       y = "proportion remembered") +
+  coord_cartesian(ylim = c(0, 0.75))
+```
+
+## valence + presentation order (i.e., primacy/recency effect)
+```{r}
+df.serial %>% 
+  group_by(serial_cat, valence) %>% 
+  ggplot(mapping = aes(x = serial_cat,
+                       y = response,
+                       group = valence,
+                       color = valence)) +
+  stat_summary(fun.data = "mean_cl_boot",
+               position = position_dodge(.2),
+               fill = "black",
+               size = 1) +
+  scale_color_manual(values = c("red", "green", "blue"))+
+  labs(title = "Valence x Serial Position Effect",
+       subtitle = paste0("Psych 45 - Spring 2024 (N = ", df.emo %>% pull(Name) %>% unique %>% length, ")"),
+       x = "list position",
+       y = "proportion remembered") +
+  coord_cartesian(ylim = c(0.2, 0.75)) +
+  theme(legend.position = "right")
+  
+df.serial %>% 
+  group_by(serial_pos, valence) %>% 
+  ggplot(mapping = aes(x = serial_pos,
+                       y = response,
+                       group = valence, 
+                       col = valence)) +
+  stat_summary(fun.data = "mean_cl_boot",
+               geom="point",
+               fill = "black",
+               size = 1) +
+  geom_smooth(alpha = 0.5, method = "loess") +
+  labs(title = "Serial Position Effect",
+       subtitle = paste0("Psych 45 - Spring 2024 (N = ", df.emo %>% pull(Name) %>% unique %>% length, ")"),
+       x = "list position",
+       y = "proportion remembered") +
+  coord_cartesian(ylim = c(0.15, 0.75)) +
+  theme(legend.position = "right")
+```
